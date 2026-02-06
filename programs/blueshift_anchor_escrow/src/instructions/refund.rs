@@ -45,8 +45,15 @@ pub struct Refund<'info> {
 
 impl<'info> Refund<'info> {
     fn refund_to_maker(&mut self) -> Result<()> {
+        let signer_seeds: [&[&[u8]]; 1] = [&[
+            b"escrow",
+            self.maker.to_account_info().key.as_ref(),
+            &self.escrow.seed.to_le_bytes()[..],
+            &[self.escrow.bump],
+        ]];
+
         transfer_checked(
-            CpiContext::new(
+            CpiContext::new_with_signer(
                 self.token_program.to_account_info(),
                 TransferChecked {
                     from: self.vault.to_account_info(),
@@ -54,6 +61,7 @@ impl<'info> Refund<'info> {
                     mint: self.mint_a.to_account_info(),
                     authority: self.escrow.to_account_info(),
                 },
+                &signer_seeds,
             ),
             self.vault.amount,
             self.mint_a.decimals,
